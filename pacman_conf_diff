@@ -19,7 +19,7 @@ class SimplePicker:
         self.choices_dict = {}
         self.width = 0
 
-    def add(self, key, text):
+    def add_option(self, key, text):
         """
         Add an option.
         User will enter the key to select an option, therefore it should be short and easy to write (e.g. 7, e, abc…).
@@ -34,6 +34,12 @@ class SimplePicker:
         self.choices.append(dictionary)
         self.choices_dict[key] = dictionary
 
+    def add_text(self, text):
+        """Add a non-selectable text."""
+        self.choices.append({
+            "text": text,
+        })
+
     def pick(self):
         """
         Let the user pick an option.
@@ -43,7 +49,10 @@ class SimplePicker:
 
         print()
         for choice in self.choices:
-            print(template.format(key=choice["key"], text=choice["text"]))
+            if "key" in choice:
+                print(template.format(key=choice["key"], text=choice["text"]))
+            else:
+                print(choice["text"])
         print()
 
         response = ""
@@ -69,15 +78,18 @@ class PCD:
         self.current = None
 
         self.action_picker = SimplePicker()
-        self.action_picker.add("d", "Diff")
-        self.action_picker.add("eb", "Edit both")
-        self.action_picker.add("ec", "Edit current config file")
-        self.action_picker.add("en", "Edit pacnew or pacsave")
-        self.action_picker.add("rc", "Remove current config file")
-        self.action_picker.add("rn", "Remove pacnew or pacsave")
-        self.action_picker.add("r", "Replace current config file with pacnew or pacsave")
-        self.action_picker.add("p", "Pick another file")
-        self.action_picker.add("q", "Quit")
+        self.action_picker.add_option("d", "Diff")
+        self.action_picker.add_text("")
+        self.action_picker.add_option("eb", "Edit both")
+        self.action_picker.add_option("ec", "Edit current config file")
+        self.action_picker.add_option("en", "Edit pacnew or pacsave")
+        self.action_picker.add_text("")
+        self.action_picker.add_option("rc", "Remove current config file")
+        self.action_picker.add_option("rn", "Remove pacnew or pacsave")
+        self.action_picker.add_option("r", "Replace current config file with pacnew or pacsave")
+        self.action_picker.add_text("")
+        self.action_picker.add_option("p", "Pick another file")
+        self.action_picker.add_option("q", "Quit")
 
     def run(self):
         self.find()
@@ -119,7 +131,10 @@ class PCD:
     def pick_file(self):
         simple_picker = SimplePicker()
         for index, pacnew in enumerate(self.pacnews):
-            simple_picker.add(index, pacnew)
+            if Path(pacnew).exists():
+                simple_picker.add_option(index, pacnew)
+            else:
+                self.pacnews.pop(index)
 
         self.pacnew = simple_picker.pick()["text"]
         self.current = self.pacnewRE.sub("", self.pacnew)
@@ -135,9 +150,9 @@ class PCD:
             self.pacnews.clear()
         elif response == "p":
             self.pick_file()
-        elif response == "dc":
+        elif response == "rc":
             run(self.get_cmd("rm") + [self.current])
-        elif response == "dn":
+        elif response == "rn":
             run(self.get_cmd("rm") + [self.pacnew])
         elif response == "eb":
             run(self.get_cmd("edit") + [self.current, self.pacnew])
