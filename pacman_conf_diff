@@ -15,7 +15,8 @@ class SimplePicker:
     """Offers a selection and let's the user pick one option."""
 
     def __init__(self):
-        self.choices = {}
+        self.choices = []
+        self.choices_dict = {}
         self.width = 0
 
     def add(self, key, text):
@@ -25,7 +26,13 @@ class SimplePicker:
         """
         key = str(key)
         self.width = len(key) if len(key) > self.width else self.width
-        self.choices[key] = text
+
+        dictionary = {
+            "key": key,
+            "text": text,
+        }
+        self.choices.append(dictionary)
+        self.choices_dict[key] = dictionary
 
     def pick(self):
         """
@@ -35,18 +42,15 @@ class SimplePicker:
         template = " {key: >" + str(self.width) + "s}) {text:s}"
 
         print()
-        for key, text in self.choices.items():
-            print(template.format(key=key, text=text))
+        for choice in self.choices:
+            print(template.format(key=choice["key"], text=choice["text"]))
         print()
 
         response = ""
-        while response not in self.choices:
+        while response not in self.choices_dict:
             response = input("?: ")
 
-        return {
-            "key": response,
-            "text": self.choices[response],
-        }
+        return self.choices_dict[response]
 
 
 class PCD:
