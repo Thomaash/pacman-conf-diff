@@ -14,6 +14,8 @@ import re
 class SimplePicker:
     """Offers a selection and let's the user pick one option."""
 
+    class NoChoices(Exception): pass
+
     def __init__(self):
         self.choices = []
         self.choices_dict = {}
@@ -45,6 +47,8 @@ class SimplePicker:
         Let the user pick an option.
         Returns a dict with key and text the user chose.
         """
+        if not self.choices_dict:
+            raise self.NoChoices()
         template = " {key: >" + str(self.width) + "s}) {text:s}"
 
         print()
@@ -92,10 +96,13 @@ class PCD:
         self.action_picker.add_option("q", "Quit")
 
     def run(self):
-        self.find()
-        self.pick_file()
-        while self.pacnews:
-            self.pick_action()
+        try:
+            self.find()
+            self.pick_file()
+            while self.pacnews:
+                self.pick_action()
+        except SimplePicker.NoChoices:
+            print("All pacnews and pacsaves resolved.")
 
     def init_conf(self):
         """Read configuration or create it with default values."""
