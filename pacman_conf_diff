@@ -10,6 +10,45 @@ import os
 import re
 
 
+
+class SimplePicker:
+    """Offers a selection and let's the user pick one option."""
+
+    def __init__(self):
+        self.choices = {}
+        self.width = 0
+
+    def add(self, key, text):
+        """
+        Add an option.
+        User will enter the key to select an option, therefore it should be short and easy to write (e.g. 7, e, abc…).
+        """
+        key = str(key)
+        self.width = len(key) if len(key) > self.width else self.width
+        self.choices[key] = text
+
+    def pick(self):
+        """
+        Let the user pick an option.
+        Returns a dict with key and text the user chose.
+        """
+        template = " {key: >" + str(self.width) + "s}) {text:s}"
+
+        print()
+        for key, text in self.choices.items():
+            print(template.format(key=key, text=text))
+        print()
+
+        response = ""
+        while response not in self.choices:
+            response = input("?: ")
+
+        return {
+            "key": response,
+            "text": self.choices[response],
+        }
+
+
 class PCD:
     """Diffs .pacnews and .pacsaves."""
 
@@ -22,21 +61,36 @@ class PCD:
     def __init__(self):
         self.pacnews = []
         self.init_conf()
+        self.pacnew = None
+        self.current = None
+
+        self.action_picker = SimplePicker()
+        self.action_picker.add("d", "Diff")
+        self.action_picker.add("eb", "Edit both")
+        self.action_picker.add("ec", "Edit current config file")
+        self.action_picker.add("en", "Edit pacnew or pacsave")
+        self.action_picker.add("rc", "Remove current config file")
+        self.action_picker.add("rn", "Remove pacnew or pacsave")
+        self.action_picker.add("r", "Replace current config file with pacnew or pacsave")
+        self.action_picker.add("p", "Pick another file")
+        self.action_picker.add("q", "Quit")
 
     def run(self):
         self.find()
-        self.diff()
+        self.pick_file()
+        while self.pacnews:
+            self.pick_action()
 
     def init_conf(self):
+        """Read configuration or create it with default values."""
         # Defaults
         self.conf = configparser.ConfigParser()
         self.conf.read_dict({
             "Commands": {
                 "diff": json.dumps(["diff", "-y", "--suppress-common-lines"]),
                 "edit": json.dumps([os.environ.get("EDITOR") or "nano"]),
-                "mv": json.dumps(["mv"]),
-                "rm": json.dumps(["rm"]),
-                "sudo": json.dumps(["sudo"]),
+                "mv": json.dumps(["sudo", "mv"]),
+                "rm": json.dumps(["sudo", "rm"]),
             },
         })
 
@@ -44,66 +98,53 @@ class PCD:
         if not self.conf.read(self.conf_path):
             with open(self.conf_path, "w") as conf_file:
                 self.conf.write(conf_file)
+                print("New config file was created: " + self.conf_path)
 
     def get_cmd(self, name):
+        """Return command from config in [cmd, arg…] format."""
         return json.loads(self.conf["Commands"][name])
 
     def find(self):
+        """Find pacnew and pacsave files."""
         for dir_path, _, files in os.walk("/etc"):
             for f in files:
                 pacnew = os.path.join(dir_path, f)
                 if self.pacnewRE.search(pacnew):
                     self.pacnews.append(pacnew)
 
-    def diff(self):
-        while self.pacnews:
-            pacnew = self.pacnews[0]
-            current = self.getCurrent(pacnew)
+    def pick_file(self):
+        simple_picker = SimplePicker()
+        for index, pacnew in enumerate(self.pacnews):
+            simple_picker.add(index, pacnew)
 
-            print("")
-            print("Current: " + current if Path(current).exists() else "Current config file doesn't exist.")
-            print("Pacnew:  " + pacnew)
-            print("")
-            print("  d) Diff")
-            print("")
-            print("  r) Replace current config file with pacnew or pacsave")
-            print("")
-            print(" rc) Remove current config file")
-            print(" rn) Remove pacnew or pacsave")
-            print("")
-            print(" eb) Edit both")
-            print(" ec) Edit current config file")
-            print(" en) Edit pacnew or pacsave")
-            print("")
-            print("  n) Next file (skip/do nothing)")
-            print("  q) Quit")
-            print("")
+        self.pacnew = simple_picker.pick()["text"]
+        self.current = self.pacnewRE.sub("", self.pacnew)
 
-            response = None
-            while response not in {"q", "rc", "rn", "r", "n", "d", "eb", "ec", "en"}:
-                response = input("?: ")
+    def pick_action(self):
+        print("")
+        print("Current: " + self.current if Path(self.current).exists() else "Current config file doesn't exist.")
+        print("Pacnew:  " + self.pacnew if Path(self.pacnew).exists() else "Pacnew/pacsave file doesn't exist.")
 
-            if response == "q":
-                return
-            elif response == "dc":
-                run(self.get_cmd("sudo") + self.get_cmd("rm") + [current])
-            elif response == "dn":
-                run(self.get_cmd("sudo") + self.get_cmd("rm") + [pacnew])
-            elif response == "eb":
-                run(self.get_cmd("sudo") + self.get_cmd("edit") + [current, pacnew])
-            elif response == "ec":
-                run(self.get_cmd("sudo") + self.get_cmd("edit") + [current])
-            elif response == "en":
-                run(self.get_cmd("sudo") + self.get_cmd("edit") + [pacnew])
-            elif response == "r":
-                run(self.get_cmd("sudo") + self.get_cmd("mv") + [pacnew, current])
-            elif response == "n":
-                self.pacnews.pop(0)
-            elif response == "d":
-                run(self.get_cmd("diff") + [pacnew, current])
+        response = self.action_picker.pick()["key"]
 
-    def getCurrent(self, pacnew):
-        return self.pacnewRE.sub("", pacnew)
+        if response == "q":
+            self.pacnews.clear()
+        elif response == "p":
+            self.pick_file()
+        elif response == "dc":
+            run(self.get_cmd("rm") + [self.current])
+        elif response == "dn":
+            run(self.get_cmd("rm") + [self.pacnew])
+        elif response == "eb":
+            run(self.get_cmd("edit") + [self.current, self.pacnew])
+        elif response == "ec":
+            run(self.get_cmd("edit") + [self.current])
+        elif response == "en":
+            run(self.get_cmd("edit") + [self.pacnew])
+        elif response == "r":
+            run(self.get_cmd("mv") + [self.pacnew, self.current])
+        elif response == "d":
+            run(self.get_cmd("diff") + [self.pacnew, self.current])
 
 
 if __name__ == "__main__":
