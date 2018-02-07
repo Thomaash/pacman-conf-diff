@@ -145,11 +145,9 @@ class PCD:
         """Let the user pick a pacnew/pacsave file."""
         simple_picker = SimplePicker()
         if self.pacnews:
+            self.pacnews = list(filter(lambda pacnew: Path(pacnew).exists(), self.pacnews))
             for index, pacnew in enumerate(self.pacnews):
-                if Path(pacnew).exists():
-                    simple_picker.add_option(index, pacnew)
-                else:
-                    self.pacnews.pop(index)
+                simple_picker.add_option(index, pacnew)
         else:
             simple_picker.add_text("All pacnews and pacsaves resolved.")
         simple_picker.add_text("")
