@@ -140,6 +140,7 @@ class PCD:
                 pacnew = os.path.join(dir_path, f)
                 if self.pacnewRE.search(pacnew):
                     self.pacnews.append(pacnew)
+        self.pacnews.sort()
 
     def pick_file(self):
         """Let the user pick a pacnew/pacsave file."""
