@@ -99,13 +99,13 @@ class PCD:
 
     def run(self):
         """Run interactive file/action selection."""
-        try:
-            self.find()
+        self.find()
+        if self.pacnews:
             self.pick_file()
             while self.pacnews:
                 self.pick_action()
-        except SimplePicker.NoChoices:
-            print("All pacnews and pacsaves resolved.")
+        else:
+            print("There are no pacnews nor pacsaves.")
 
     def _init_conf(self):
         """Read configuration or create it with default values."""
@@ -130,6 +130,9 @@ class PCD:
         """Return command from config in [cmd, arg…] format."""
         return json.loads(self.conf["Commands"][name])
 
+    def _quit(self):
+        self.pacnews.clear()
+
     def find(self):
         """Find pacnew and pacsave files."""
         for dir_path, _, files in os.walk("/etc"):
@@ -141,14 +144,23 @@ class PCD:
     def pick_file(self):
         """Let the user pick a pacnew/pacsave file."""
         simple_picker = SimplePicker()
-        for index, pacnew in enumerate(self.pacnews):
-            if Path(pacnew).exists():
-                simple_picker.add_option(index, pacnew)
-            else:
-                self.pacnews.pop(index)
+        if self.pacnews:
+            for index, pacnew in enumerate(self.pacnews):
+                if Path(pacnew).exists():
+                    simple_picker.add_option(index, pacnew)
+                else:
+                    self.pacnews.pop(index)
+        else:
+            simple_picker.add_text("All pacnews and pacsaves resolved.")
+        simple_picker.add_text("")
+        simple_picker.add_option("q", "Quit")
 
-        self.pacnew = simple_picker.pick()["text"]
-        self.current = self.pacnewRE.sub("", self.pacnew)
+        response = simple_picker.pick()
+        if response["key"] == "q":
+            self._quit()
+        else:
+            self.pacnew = response["text"]
+            self.current = self.pacnewRE.sub("", self.pacnew)
 
     def pick_action(self):
         """Let the user pick an action with the current file."""
@@ -159,7 +171,7 @@ class PCD:
         response = self.action_picker.pick()["key"]
 
         if response == "q":
-            self.pacnews.clear()
+            self._quit()
         elif response == "p":
             self.pick_file()
         elif response == "rc":
