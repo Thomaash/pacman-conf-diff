@@ -14,7 +14,9 @@ import re
 class SimplePicker:
     """Offers a selection and let's the user pick one option."""
 
-    class NoChoices(Exception): pass
+    class NoChoices(Exception):
+        """Thrown when someone tries to make the user pick from 0 choices."""
+        pass
 
     def __init__(self):
         self.choices = []
@@ -77,7 +79,7 @@ class PCD:
 
     def __init__(self):
         self.pacnews = []
-        self.init_conf()
+        self._init_conf()
         self.pacnew = None
         self.current = None
 
@@ -96,6 +98,7 @@ class PCD:
         self.action_picker.add_option("q", "Quit")
 
     def run(self):
+        """Run interactive file/action selection."""
         try:
             self.find()
             self.pick_file()
@@ -104,7 +107,7 @@ class PCD:
         except SimplePicker.NoChoices:
             print("All pacnews and pacsaves resolved.")
 
-    def init_conf(self):
+    def _init_conf(self):
         """Read configuration or create it with default values."""
         # Defaults
         self.conf = configparser.ConfigParser()
@@ -123,7 +126,7 @@ class PCD:
                 self.conf.write(conf_file)
                 print("New config file was created: " + self.conf_path)
 
-    def get_cmd(self, name):
+    def _get_cmd(self, name):
         """Return command from config in [cmd, arg…] format."""
         return json.loads(self.conf["Commands"][name])
 
@@ -136,6 +139,7 @@ class PCD:
                     self.pacnews.append(pacnew)
 
     def pick_file(self):
+        """Let the user pick a pacnew/pacsave file."""
         simple_picker = SimplePicker()
         for index, pacnew in enumerate(self.pacnews):
             if Path(pacnew).exists():
@@ -147,6 +151,7 @@ class PCD:
         self.current = self.pacnewRE.sub("", self.pacnew)
 
     def pick_action(self):
+        """Let the user pick an action with the current file."""
         print("")
         print("Current: " + self.current if Path(self.current).exists() else "Current config file doesn't exist.")
         print("Pacnew:  " + self.pacnew if Path(self.pacnew).exists() else "Pacnew/pacsave file doesn't exist.")
@@ -158,19 +163,19 @@ class PCD:
         elif response == "p":
             self.pick_file()
         elif response == "rc":
-            run(self.get_cmd("rm") + [self.current])
+            run(self._get_cmd("rm") + [self.current])
         elif response == "rn":
-            run(self.get_cmd("rm") + [self.pacnew])
+            run(self._get_cmd("rm") + [self.pacnew])
         elif response == "eb":
-            run(self.get_cmd("edit") + [self.current, self.pacnew])
+            run(self._get_cmd("edit") + [self.current, self.pacnew])
         elif response == "ec":
-            run(self.get_cmd("edit") + [self.current])
+            run(self._get_cmd("edit") + [self.current])
         elif response == "en":
-            run(self.get_cmd("edit") + [self.pacnew])
+            run(self._get_cmd("edit") + [self.pacnew])
         elif response == "r":
-            run(self.get_cmd("mv") + [self.pacnew, self.current])
+            run(self._get_cmd("mv") + [self.pacnew, self.current])
         elif response == "d":
-            run(self.get_cmd("diff") + [self.pacnew, self.current])
+            run(self._get_cmd("diff") + [self.pacnew, self.current])
 
 
 if __name__ == "__main__":
