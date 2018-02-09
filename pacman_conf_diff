@@ -81,7 +81,7 @@ class PCD:
     )
 
     def __init__(self):
-        self.pacnews = []
+        self.pacfiles = []
         self._init_conf()
         self.pacnew = None
         self.current = None
@@ -103,9 +103,9 @@ class PCD:
     def run(self):
         """Run interactive file/action selection."""
         self.find()
-        if self.pacnews:
+        if self.pacfiles:
             self.pick_file()
-            while self.pacnews:
+            while self.pacfiles:
                 self.pick_action()
         else:
             print("There are no pacnews nor pacsaves.")
@@ -134,7 +134,7 @@ class PCD:
         return json.loads(self.conf["Commands"][name])
 
     def _quit(self):
-        self.pacnews.clear()
+        self.pacfiles.clear()
 
     def find(self):
         """Find pacnew and pacsave files."""
@@ -142,18 +142,18 @@ class PCD:
             for f in files:
                 pacnew = os.path.join(dir_path, f)
                 if self.re_pacfiles.search(pacnew):
-                    self.pacnews.append(pacnew)
-        self.pacnews.sort()
+                    self.pacfiles.append(pacnew)
+        self.pacfiles.sort()
 
     def pick_file(self):
         """Let the user pick a pacnew/pacsave file."""
         simple_picker = SimplePicker()
-        self.pacnews = list(filter(lambda pacnew: Path(pacnew).exists(), self.pacnews))
-        if self.pacnews:
+        self.pacfiles = list(filter(lambda pacnew: Path(pacnew).exists(), self.pacfiles))
+        if self.pacfiles:
             index = 1
 
             # Pacnews
-            for pacnew in filter(self.re_pacsave.search, self.pacnews):
+            for pacnew in filter(self.re_pacsave.search, self.pacfiles):
                 simple_picker.add_option(index, pacnew)
                 index += 1
 
@@ -161,7 +161,7 @@ class PCD:
                 simple_picker.add_text("")
 
             # Pacsaves
-            for pacnew in filter(self.re_pacnew.search, self.pacnews):
+            for pacnew in filter(self.re_pacnew.search, self.pacfiles):
                 simple_picker.add_option(index, pacnew)
                 index += 1
         else:
