@@ -71,7 +71,10 @@ class SimplePicker:
 class PCD:
     """Diffs .pacnews and .pacsaves."""
 
-    pacnewRE = re.compile(r"\.pac(new|save)(\.\d+)?$")
+    re_pacfiles = re.compile(r"\.pac(new|save)(\.\d+)?$")
+    re_pacnew = re.compile(r"\.pacnew(\.\d+)?$")
+    re_pacsave = re.compile(r"\.pacsave(\.\d+)?$")
+
     conf_path = os.path.join(
         os.environ.get("XDG_CONFIG_HOME") or os.environ["HOME"] + "/.config",
         "pacman_conf_diff.conf"
@@ -138,7 +141,7 @@ class PCD:
         for dir_path, _, files in os.walk("/etc"):
             for f in files:
                 pacnew = os.path.join(dir_path, f)
-                if self.pacnewRE.search(pacnew):
+                if self.re_pacfiles.search(pacnew):
                     self.pacnews.append(pacnew)
         self.pacnews.sort()
 
@@ -147,8 +150,20 @@ class PCD:
         simple_picker = SimplePicker()
         self.pacnews = list(filter(lambda pacnew: Path(pacnew).exists(), self.pacnews))
         if self.pacnews:
-            for index, pacnew in enumerate(self.pacnews):
+            index = 1
+
+            # Pacnews
+            for pacnew in filter(self.re_pacsave.search, self.pacnews):
                 simple_picker.add_option(index, pacnew)
+                index += 1
+
+            if index > 1:
+                simple_picker.add_text("")
+
+            # Pacsaves
+            for pacnew in filter(self.re_pacnew.search, self.pacnews):
+                simple_picker.add_option(index, pacnew)
+                index += 1
         else:
             simple_picker.add_text("All pacnews and pacsaves resolved.")
         simple_picker.add_text("")
@@ -159,7 +174,7 @@ class PCD:
             self._quit()
         else:
             self.pacnew = response["text"]
-            self.current = self.pacnewRE.sub("", self.pacnew)
+            self.current = self.re_pacfiles.sub("", self.pacnew)
 
     def pick_action(self):
         """Let the user pick an action with the current file."""
