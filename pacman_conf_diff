@@ -94,7 +94,7 @@ class PCD:
         self.action_picker.add_option("en", "Edit pacnew or pacsave")
         self.action_picker.add_text("")
         self.action_picker.add_option("rc", "Remove current config file")
-        self.action_picker.add_option("rn", "Remove pacnew or pacsave")
+        self.action_picker.add_option("rp", "Remove pacnew or pacsave")
         self.action_picker.add_option("r", "Replace current config file with pacnew or pacsave")
         self.action_picker.add_text("")
         self.action_picker.add_option("p", "Pick another file")
@@ -190,7 +190,7 @@ class PCD:
             self.pick_file()
         elif response == "rc":
             run(self._get_cmd("rm") + [self.current])
-        elif response == "rn":
+        elif response == "rp":
             run(self._get_cmd("rm") + [self.pacnew])
         elif response == "eb":
             run(self._get_cmd("edit") + [self.current, self.pacnew])
