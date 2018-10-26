@@ -2,6 +2,7 @@
 
 """Diffs .pacnews and .pacsaves."""
 
+from itertools import chain
 from pathlib import Path
 from subprocess import run
 import configparser
@@ -108,7 +109,7 @@ class PCD:
             while self.pacfiles:
                 self.pick_action()
         else:
-            print("There are no pacnews nor pacsaves.")
+            print("There's nothing to do.")
 
     def _init_conf(self):
         """Read configuration or create it with default values."""
@@ -138,12 +139,15 @@ class PCD:
 
     def find(self):
         """Find pacnew and pacsave files."""
-        for dir_path, _, files in os.walk("/etc"):
+        print("Looking for pacnew and pacsave files…")
+        paths = ('/bin', '/etc', '/opt', '/usr')
+        for dir_path, _, files in chain.from_iterable(os.walk(path) for path in paths):
             for f in files:
                 pacnew = os.path.join(dir_path, f)
                 if self.re_pacfiles.search(pacnew):
                     self.pacfiles.append(pacnew)
         self.pacfiles.sort()
+        print("%d file(s) found." % len(self.pacfiles))
 
     def pick_file(self):
         """Let the user pick a pacnew/pacsave file."""
